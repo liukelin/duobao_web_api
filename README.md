@@ -1,1 +1,1 @@
-# alipay_mobile_for_python
+# web请求限制、夺宝购买生成订单号码的例子
