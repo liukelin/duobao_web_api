@@ -10,9 +10,11 @@
 import os
 import time
 import redis
-import torndb # 这里使用torndb 操作mysql
+# import torndb # 这里使用torndb 操作mysql
 import gevent # 作为web服务器
-
+# 
+from gevent import monkey 
+monkey.patch_all() #将程序转换成可以使用gevent框架的异步程序。
 
 config = {
     'mysql':{
@@ -27,7 +29,7 @@ config = {
         'db':0
     }
 }
-db_mysql = torndb.Connection(**config['mysql'])
+# db_mysql = torndb.Connection(**config['mysql'])
 pool = redis.ConnectionPool(**config['redis'])
 redisConn = redis.Redis(connection_pool=pool)
 
@@ -161,7 +163,12 @@ def set_code(uid, goods_id, codes=[]):
     suc = db_mysql.execute(sql)
     return suc
 
-from gevent.server import StreamServer
+
+def server():
+    from gevent.server import StreamServer
+    server = StreamServer(('0.0.0.0', 6000), echo)
+    print('startup... port:6000')
+    server.server_forever()
 
 def echo(socket, address):
     print('New')
@@ -172,11 +179,19 @@ def echo(socket, address):
     while True:
         print 12
 
+def echo1():
+    print(time.time())
+
+def wsgi_server(address, port, app):
+    server = gevent.wsgi.WSGIServer((address, port), app , log=None)
+    gevent.signal(signal.SIGTERM, server.close)
+    gevent.signal(signal.SIGINT, server.close)
+    server.serve_forever()
+
 
 if __name__=='__main__':
-    server = StreamServer(('0.0.0.0', 6000), echo)
-    print('startup... port:6000')
-    server.server_forever()
+    wsgi_server('0.0.0.0', 6000, echo1)
+    
 
 
 
