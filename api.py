@@ -10,11 +10,8 @@
 import os
 import time
 import redis
-# import torndb # 这里使用torndb 操作mysql
-import gevent # 作为web服务器
-# 
-from gevent import monkey 
-monkey.patch_all() #将程序转换成可以使用gevent框架的异步程序。
+
+from wsgiref.simple_server import make_server
 
 config = {
     'mysql':{
@@ -164,33 +161,19 @@ def set_code(uid, goods_id, codes=[]):
     return suc
 
 
-def server():
-    from gevent.server import StreamServer
-    server = StreamServer(('0.0.0.0', 6000), echo)
-    print('startup... port:6000')
-    server.server_forever()
+def application(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/html')])
+    return [b'<h1>Hello, web!</h1>',time.time()]
 
-def echo(socket, address):
-    print('New')
-
-    socket.sendall('welcome')
-
-    fileobj = socket.makefile()
-    while True:
-        print 12
-
-def echo1():
-    print(time.time())
-
-def wsgi_server(address, port, app):
-    server = gevent.wsgi.WSGIServer((address, port), app , log=None)
-    gevent.signal(signal.SIGTERM, server.close)
-    gevent.signal(signal.SIGINT, server.close)
-    server.serve_forever()
-
+def wsgi_server(address, port):
+    # 创建一个服务器，IP地址为空，端口是8000，处理函数是application:
+    httpd = make_server(address, port, application)
+    print('Serving HTTP on port %s...' % port)
+    # 开始监听HTTP请求:
+    httpd.serve_forever()
 
 if __name__=='__main__':
-    wsgi_server('0.0.0.0', 6000, echo1)
+    wsgi_server('0.0.0.0', 6000)
     
 
 
