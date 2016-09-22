@@ -8,21 +8,28 @@
 
 '''
 import os
+import time
 import redis
-import json
+import torndb # 这里使用torndb 操作mysql
+import gevent # 作为web服务器
 
-mysql = {
-    'host':'localhost',
-    'port':'3306',
-    'user':'root',
-    'pass':'123456'
-}
 
-redis = {
-    'host':'localhost',
-    'port':3306,
-    'db':0
+config = {
+    'mysql':{
+        'host': "localhost",
+        'database': 'kelin_test',
+        'user': 'root',
+        'password': '123456',
+        }
+    'redis': {
+        'host':'localhost',
+        'port':3306,
+        'db':0
+    }
 }
+db_mysql = torndb.Connection(**config['mysql'])
+pool = redis.ConnectionPool(**config['redis'])
+redisConn = redis.Redis(connection_pool=pool)
 
 
 def pay():
@@ -134,15 +141,55 @@ def set_period_code(goods_id, uid, num):
 
 # 获取商品信息
 def get_goods(goods_id):
-    return db.get(" select * from `goods` where `goods_id`=%s ", goods_id)
+    return db_mysql.get(" select * from `goods` where `goods_id`=%s ", goods_id)
 
 # 获取商品已售号码
 def get_goods_code(goods_id):
-    return db.query(" select `id`,`code` from `goods_code` where `goods_id`=%s ", goods_id)
+    return db_mysql.query(" select `id`,`code` from `goods_code` where `goods_id`=%s ", goods_id)
 
 # 扣除已购买数
 def up_goods_has(goods_id, num):
-    return db.execute(" update `goods_code` set `goods_has`=`goods_has`+%s where `goods_id`=%s ", num, goods_id)
+    return db_mysql.execute(" update `goods_code` set `goods_has`=`goods_has`+%s where `goods_id`=%s ", num, goods_id)
 
 def set_code(uid, goods_id, codes=[]):
-    pass
+
+    createtime = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+    sql = " INSERT INTO  `orders_code` (`code`, `goods_id` ,`uid`, `time`) values "
+    for code in codes:
+        sql +=  "('%s', '%s', '%s', '%s')," %( code, goods_id, uid, createtime)
+    sql = sql[:-1]
+    suc = db_mysql.execute(sql)
+    return suc
+
+from gevent.server import StreamServer
+
+def echo(socket, address):
+    print('New')
+
+    socket.sendall('welcome')
+
+    fileobj = socket.makefile()
+    while True:
+        print 12
+
+
+if __name__=='__main__':
+    server = StreamServer(('0.0.0.0', 6000), echo)
+    print('startup... port:6000')
+    server.server_forever()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
