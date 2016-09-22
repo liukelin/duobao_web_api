@@ -19,7 +19,7 @@ config = {
         'database': 'kelin_test',
         'user': 'root',
         'password': '123456',
-        }
+        },
     'redis': {
         'host':'localhost',
         'port':3306,
