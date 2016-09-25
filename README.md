@@ -9,3 +9,10 @@ web请求限制、夺宝购买生成订单号码的例子
 ![image](https://github.com/liukelin/duobao_web_api/raw/master/img/case1.jpg)
 
 ![image](https://github.com/liukelin/duobao_web_api/raw/master/img/process.png)
+
+购买时候的数量锁定：
+对于购买时候的数量锁定，可使用redis，利用incrby原子自增
+
+号码随机获取：
+这里就涉及到一个号码池的问题，每个商品对应所有号码，并从这个号码池随机领取。
+最简单的方法是使用 redis的set集合，spop随机获取集合元素
