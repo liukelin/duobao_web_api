@@ -8,3 +8,4 @@ web请求限制、夺宝购买生成订单号码的例子
 
 ![image](https://github.com/liukelin/duobao_web_api/raw/master/img/case1.jpg)
 
+![image](https://github.com/liukelin/duobao_web_api/raw/master/img/process.png)
