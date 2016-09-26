@@ -1,9 +1,9 @@
-web请求限制、夺宝购买生成订单号码的例子
+web接口代码层请求限制、夺宝购买生成订单号码的例子
 
-最近做一个夺宝类项目（参照网易 一元夺宝），购买流程是购买份数并给相应数量随机号码。
+一、最近做一个夺宝类项目（参照网易 一元夺宝），购买流程是购买份数，并给相应数量随机号码，最后整个商品的号码是连续的。
 
 号码规则是：
-        号码数量N=商品总需份数 
+        号码数量N = 商品总需份数 
         号码值：1000002 到 1000001+N 连续的号码
 
 ![image](https://github.com/liukelin/duobao_web_api/raw/master/img/case1.jpg)
@@ -11,7 +11,7 @@ web请求限制、夺宝购买生成订单号码的例子
 ![image](https://github.com/liukelin/duobao_web_api/raw/master/img/process.png)
 
 购买时候的数量锁定：
-对于购买时候的数量锁定，可使用redis，利用incrby原子自增。
+对于购买时候的数量锁定，最简单可使用redis，利用incrby原子自增，（也可以使用一个集合，原子性是关键）。
 
     # 读取商品信息
     goods = get_goods(goods_id)
@@ -90,3 +90,35 @@ web请求限制、夺宝购买生成订单号码的例子
         if code:
             codes.append(code)
      return codes
+
+
+
+二、代码层对连续请求的限制
+        
+        web接口遇到最多的或许是，用户在短时间内连续请求，如果代码逻辑判断写的不好的话容易造成数据的错误。
+        
+        nginx可做限流，这里讲针对代码层限制请求的一个小技巧
+        
+        因为redis的单线程的，并且存在一个incr(原子自增+1并返回值)，这样的话，即时多个并发请求incr操作，也会对每个请求给出一个不重复的顺序的号码。
+        
+        key = 'orders_pay'+str(uid)
+        check = redisConn.incr(key)
+        if check and int(check)<=1:
+            redisConn.expire(key_, 5) # 设定过期
+        else:
+            return '请求太频繁，请稍后再试'
+        
+        上面代码，限制了同一个uid,只对第一个请求的通过，并设置5秒等待时间。
+        试想：  1.可以将uid限制，换成对一个IP？ 
+               2.或者对所有限制，并int(check)<=N 同时允许N个请求通过，其余的阻挡
+        
+        time = 1 # 每秒限制
+        num = 10000 # 允许单位时间内请求数
+        key = 'orders_pay'
+        check = redisConn.incr(key)
+        if check and int(check)<=num: 
+            redisConn.expire(key_, time) # 设定过期
+        else:
+            return '请求太频繁，请稍后再试'
+            
+        
