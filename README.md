@@ -101,6 +101,8 @@ web接口代码层请求限制、夺宝购买生成订单号码的例子
         
         因为redis的单线程的，并且存在一个incr(原子自增+1并返回值)，这样的话，即时多个并发请求incr操作，也会对每个请求给出一个不重复的顺序的号码。
         
+        号码牌：每个请求进来，操作incr，领取独立自增的号码。符合条件则通过。
+        
         key = 'orders_pay'+str(uid)
         check = redisConn.incr(key)
         if check and int(check)<=1:
@@ -112,7 +114,7 @@ web接口代码层请求限制、夺宝购买生成订单号码的例子
         试想：  1.可以将uid限制，换成对一个IP？ 
                2.或者对所有限制，并int(check)<=N 同时允许N个请求通过，其余的阻挡
         
-        time = 1 # 每秒限制
+        time = 1 # 允许时间间隔
         num = 10000 # 允许单位时间内请求数
         key = 'orders_pay'
         check = redisConn.incr(key)
@@ -120,5 +122,8 @@ web接口代码层请求限制、夺宝购买生成订单号码的例子
             redisConn.expire(key_, time) # 设定过期
         else:
             return '请求太频繁，请稍后再试'
-            
+         
+        那么如果要限制每秒的请求数呢？
+        key = 'orders_pay'+str(time) # 使用当前时间Y-m-d H:i:s作为key就行了(10位数的时间戳也可)
+        
         
